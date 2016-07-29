@@ -42,7 +42,7 @@ log using "$OUT/log/mortalityPrep.txt", text replace
 *-------------------------------------------------------------------------------
 *--- (2) Generate yearly sheets of suicides only at micro level
 *-------------------------------------------------------------------------------
-local files1
+local files1a
 foreach year of numlist 1959(1)1961 {
     use "$DAT/mort`year'", clear
     gen suicide = ccr59==58
@@ -51,15 +51,32 @@ foreach year of numlist 1959(1)1961 {
     keep datayear monthdth rectype restatus stateoc countyoc staters countyrs /*
     */   popsize race sex age marital nativity stbirth ucod 
 
+    gen statecheck   = substr(countyoc,1,2)
     replace countyoc = substr(countyoc,3,2)
     destring countyoc, replace
     destring stateoc, replace
+    destring statecheck, replace
+    
+    replace countyoc=countyoc+99 if statecheck==61
+    replace countyoc=countyoc+99 if statecheck==63
+    replace countyoc=countyoc+99 if statecheck==65
+    replace countyoc=countyoc+99 if statecheck==67
+    replace countyoc=countyoc+99 if statecheck==69
+    replace countyoc=countyoc+100 if statecheck==71
+    replace countyoc=countyoc+200 if statecheck==72
+    replace countyoc=countyoc+99 if statecheck==74
+    replace countyoc=127 if countyoc==61&statecheck==73
+    replace countyoc=117 if countyoc==64&statecheck==73
+    replace countyoc=128 if countyoc==76&statecheck==73
+    replace countyoc=118 if countyoc==125&statecheck==74
+    
     
     tempfile y`year'
     save `y`year''
-    local files1 `files1' `y`year''
+    local files1a `files1a' `y`year''
 }
 
+local files1b
 foreach year of numlist 1962(1)1963 {
     use "$DAT/mort`year'", clear
     gen suicide = ccr60==58
@@ -74,7 +91,7 @@ foreach year of numlist 1962(1)1963 {
     
     tempfile y`year'
     save `y`year''
-    local files1 `files1' `y`year''
+    local files1b `files1b' `y`year''
 }
 
 foreach year of numlist 1964(1)1967 {
@@ -92,7 +109,7 @@ foreach year of numlist 1964(1)1967 {
     tempfile y`year'
     save `y`year''
 
-    local files1 `files1' `y`year''
+    local files1b `files1b' `y`year''
 }
 
 local files2
@@ -116,7 +133,27 @@ foreach year of numlist 1968(1)1978 {
 }
 
 
-foreach year of numlist 1979(1)1988 {
+foreach year of numlist 1979(1)1981 {
+    dis "`year'"
+    use "$DAT/mort`year'", clear
+    gen suicide = ucr72==820
+    tab suicide
+    keep if suicide==1
+    replace datayear=`year'
+    keep datayear monthdth daydth rectype restatus stateoc countyoc staters /*
+    */   countyrs popsize race sex age ucod 
+    replace countyoc = substr(countyoc,3,3)
+    destring countyoc, replace
+    destring stateoc, replace
+    
+    tempfile y`year'
+    save `y`year''
+
+    local files2 `files2' `y`year''
+}
+
+local files3
+foreach year of numlist 1982(1)1988 {
     dis "`year'"
     use "$DAT/mort`year'", clear
     gen suicide = ucr72==820
@@ -136,21 +173,39 @@ foreach year of numlist 1979(1)1988 {
     tempfile y`year'
     save `y`year''
 
-    local files2 `files2' `y`year''
+    local files3 `files3' `y`year''
 }
 
 clear
-append using `files1', force
+append using `files1a', force
+merge m:1 stateoc countyoc using "$GEO/nchs2fips_county1959-1961.dta", force
+drop if _merge==2
+tempfile group0
+save `group0'
+
+
+clear
+append using `files1b', force
 merge m:1 stateoc countyoc using "$GEO/nchs2fips_county1962-1967.dta", force
 drop if _merge==2
 tempfile group1
 save `group1'
 
+
 clear
 append using `files2', force
 merge m:1 stateoc countyoc using "$GEO/nchs2fips_county1968-1978.dta", force
 drop if _merge==2
-append using `group1'
+tempfile group2
+save `group2'
+
+clear
+append using `files3', force
+merge m:1 stateoc countyoc using "$GEO/nchs2fips_county1982-1988.dta", force
+drop if _merge==2
+
+
+append using `group1' `group0' `group2'
 
 
 *-------------------------------------------------------------------------------
