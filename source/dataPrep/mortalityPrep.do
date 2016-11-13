@@ -3,7 +3,7 @@
 
 Generate data on suicides using ICD 10 codes.
 
-Note: automatically download of NBER (unix shell only):
+Note: automatically download off NBER (unix shell only):
 for i in {1959..1989};
 do echo "downloading mortality file $i";
 wget "http://www.nber.org/mortality/$i/mort$i.dta.zip";
@@ -28,7 +28,7 @@ cap log close
 *-------------------------------------------------------------------------------
 *--- (1) globals and locals
 *-------------------------------------------------------------------------------
-global DAT "~/database/NVSS/Mortality/dta/"
+global DAT "/media/damian/Impar/database/NVSS/Mortality/dta/"
 global OUT "~/investigacion/2016/suicide/"
 global GEO "~/investigacion/2016/suicide/data/geography/"
 
@@ -141,7 +141,7 @@ foreach year of numlist 1979(1)1981 {
     keep if suicide==1
     replace datayear=`year'
     keep datayear monthdth daydth rectype restatus stateoc countyoc staters /*
-    */   countyrs popsize race sex age ucod 
+    */   countyrs popsize race sex age ucod statebth
     replace countyoc = substr(countyoc,3,3)
     destring countyoc, replace
     destring stateoc, replace
@@ -161,7 +161,7 @@ foreach year of numlist 1982(1)1988 {
     keep if suicide==1
     replace datayear=`year'
     keep datayear monthdth daydth rectype restatus stateoc countyoc staters /*
-    */   countyrs popsize race sex age ucod 
+    */   countyrs popsize race sex age ucod statebth 
     if `year'<1988 {
         replace countyoc = substr(countyoc,3,3)
         destring countyoc, replace
@@ -212,5 +212,5 @@ append using `group1' `group0' `group2'
 *--- (3) Save microdata
 *-------------------------------------------------------------------------------
 lab dat "All suicides: 1959-1988"
-save "$OUT/data/suicideMicrodata_1959-1988", replace
+save "$OUT/data/suicides/suicideMicrodata_1959-1988", replace
 
