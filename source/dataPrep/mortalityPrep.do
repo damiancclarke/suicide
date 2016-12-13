@@ -115,6 +115,7 @@ foreach year of numlist 1964(1)1967 {
 local files2
 foreach year of numlist 1968(1)1978 {
     use "$DAT/mort`year'", clear
+    if `year'==1972 expand 2
     gen suicide = ucr69==790
     tab suicide
     keep if suicide==1
@@ -206,7 +207,6 @@ drop if _merge==2
 
 
 append using `group1' `group0' `group2'
-
 
 *-------------------------------------------------------------------------------
 *--- (3) Save microdata
