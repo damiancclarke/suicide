@@ -198,33 +198,77 @@ foreach year of numlist 1989(1)1993 {
     local files4 `files4' `y`year''
 }
 
-foreach year of numlist 1989(1)1993 {
-    use "$DAT/mort`year'", clear
-    merge m:1 stateoc countyoc using "$GEO/nchs2fips_county1989-1993.dta", force
-}
-
+local files5
 foreach year of numlist 1994(1)1996 1998 1999 2001 2002 {
+    dis "`year'"
     use "$DAT/mort`year'", clear
+    if `year'<1999 {
+        gen suicide = ucr72==820
+    }
+    else {
+        gen suicide = ucr39==40
+    }
+    tab suicide
+    keep if suicide==1
+    cap gen datayear=`year'
+    replace datayear=`year'
+
+    cap rename statbth statebth
+    keep datayear monthdth weekday rectype restatus stateoc countyoc staters /*
+    */   countyrs popsize race age educ ucod statebth
+
     replace countyoc = substr(countyoc , -3,.)
     destring countyoc, replace
     destring stateoc, replace
-    merge m:1 stateoc countyoc using "$GEO/nchs2fips_county1994-2002.dta", force
+
+    tempfile y`year'
+    save `y`year''
+
+    local files5 `files5' `y`year''
 }
+
 use "$DAT/mort2000", clear
+gen suicide = ucr39==40
+gen datayear=2000
+rename statbth statebth
 replace countyoc = substr(countyoc , -3,.)
 destring countyoc, replace
 destring stateoc, replace
-merge m:1 stateoc countyoc using "$GEO/nchs2fips_county2000-2000.dta", force
+tempfile y2000
+save `y2000'
 
 
+local files6
+foreach year of numlist 2003(1)2009 2011 2012 2014 {
+    dis "`year'"
+    use "$DAT/mort`year'", clear
+    gen suicide = ucr39==40
+    tab suicide
+    keep if suicide==1
+    gen datayear=`year'
 
-use "$DAT/mort1990", clear
-replace countyoc = substr(countyoc , -3,.)
-destring countyoc, replace
-destring stateoc, replace
-merge m:1 stateoc countyoc using "$GEO/nchs2fips_county1989-199x.dta", force
+    rename statbth statebth
+    if `year'>2013 {
+        gen rectype=1
+        rename educ1989 educ
+    }
+    
+    keep datayear monthdth weekday rectype restatus stateoc countyoc staters /*
+    */   countyrs popsize race age educ ucod statebth
 
+    replace countyoc = substr(countyoc , -3,.)
+    destring countyoc, replace
+    destring stateoc, replace
 
+    tempfile y`year'
+    save `y`year''
+
+    local files6 `files6' `y`year''
+}
+
+*-------------------------------------------------------------------------------
+*--- (3) Append to merge with FIPS
+*-------------------------------------------------------------------------------
 clear
 append using `files1a', force
 merge m:1 stateoc countyoc using "$GEO/nchs2fips_county1959-1961.dta", force
@@ -259,14 +303,34 @@ clear
 append using `files4', force
 merge m:1 stateoc countyoc using "$GEO/nchs2fips_county1989-1993.dta", force
 drop if _merge==2
+tempfile group4
+save `group4'
+
+clear
+append using `files5', force
+merge m:1 stateoc countyoc using "$GEO/nchs2fips_county1994-2002.dta", force
+drop if _merge==2
+tempfile group5
+save `group5'
+
+clear
+use `y2000'
+merge m:1 stateoc countyoc using "$GEO/nchs2fips_county2000-2000.dta", force
+drop if _merge==2
+tempfile group6
+save `group6'
+
+clear
+append using `files6', force
+merge m:1 stateoc countyoc using "$GEO/nchs2fips_county2003-2014.dta", force
+drop if _merge==2
 
 
-
-append using `group1' `group0' `group2' `group3'
+append using `group1' `group0' `group2' `group3' `group4' `group5' `group6'
 
 *-------------------------------------------------------------------------------
-*--- (3) Save microdata
+*--- (4) Save microdata
 *-------------------------------------------------------------------------------
-lab dat "All suicides: 1959-1988"
-save "$OUT/data/suicides/suicideMicrodata_1959-1988", replace
+lab dat "All suicides: 1959-2014"
+save "$OUT/data/suicides/suicideMicrodata_1959-2014", replace
 
