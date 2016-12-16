@@ -229,11 +229,14 @@ foreach year of numlist 1994(1)1996 1998 1999 2001 2002 {
 
 use "$DAT/mort2000", clear
 gen suicide = ucr39==40
+keep if suicide==1
 gen datayear=2000
 rename statbth statebth
 replace countyoc = substr(countyoc , -3,.)
 destring countyoc, replace
 destring stateoc, replace
+keep datayear monthdth weekday rectype restatus stateoc countyoc staters /*
+*/   countyrs popsize race age educ ucod statebth
 tempfile y2000
 save `y2000'
 
@@ -248,13 +251,10 @@ foreach year of numlist 2003(1)2009 2011 2012 2014 {
     gen datayear=`year'
 
     rename statbth statebth
-    if `year'>2013 {
-        gen rectype=1
-        rename educ1989 educ
-    }
+    cap gen rectype=1
     
     keep datayear monthdth weekday rectype restatus stateoc countyoc staters /*
-    */   countyrs popsize race age educ ucod statebth
+    */   countyrs popsize race age educ* ucod statebth
 
     replace countyoc = substr(countyoc , -3,.)
     destring countyoc, replace
@@ -326,7 +326,7 @@ merge m:1 stateoc countyoc using "$GEO/nchs2fips_county2003-2014.dta", force
 drop if _merge==2
 
 
-append using `group1' `group0' `group2' `group3' `group4' `group5' `group6'
+append using `group1' `group0' `group2' `group3' `group4' `group5' `group6', force
 
 *-------------------------------------------------------------------------------
 *--- (4) Save microdata
